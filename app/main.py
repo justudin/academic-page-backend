@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, make_response, render_template
 import requests as req
 import datetime
 from functools import reduce
@@ -35,6 +35,18 @@ def orcid_data_part(orcid_id):
         key = {'orcid': orcid_id}
         data_mongodb = get_orcid_crossref(orcid_id)
         return jsonify(data_mongodb)
+    else:
+        message = jsonify(message='Please provide the ORCID ID')
+        return make_response(message, 400)
+
+@app.route("/orcid/<orcid_id>/works/html")
+def orcid_data_part_html(orcid_id):
+    print("orcid_data_part")
+    update = request.args.get('update')
+    if orcid_id:
+        key = {'orcid': orcid_id}
+        data_mongodb = get_orcid_crossref(orcid_id)
+        return render_template('works.html', data=data_mongodb)
     else:
         message = jsonify(message='Please provide the ORCID ID')
         return make_response(message, 400)
