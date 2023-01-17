@@ -23,6 +23,10 @@
         padding: .35em;
       }
 
+      .textleft {
+        text-align: left !important;
+      }
+
       table th,
       table td {
         padding: .625em;
@@ -97,18 +101,18 @@
   <caption>Publications (Total: {{data.total_papers}}, Citations: {{data.total_citations}}, H-index: {{data.hindex}})*</caption>
   <thead>
     <tr>
-      <th scope="col">#</th>
+      <th scope="col" width="6%">#</th>
       <th scope="col">Title</th>
-      <th scope="col">Year</th>
-      <th scope="col">Type</th>
-      <th scope="col">Citations</th>
+      <th scope="col" width="6%">Year</th>
+      <th scope="col" width="7%">Type</th>
+      <th scope="col" width="7%">Citations</th>
     </tr>
   </thead>
   <tbody>
     {% for paper in data.data %}
       <tr>
           <td data-label="Number">{{ data.total_papers-loop.index+1 }}</td>
-          <td data-label="Title"><a href="https://doi.org/{{paper.doi}}" style="text-decoration:none;" target="_blank">{{ paper.title }}</a></td>
+          <td data-label="Title" class="textleft"><a href="https://doi.org/{{paper.doi}}" style="text-decoration:none;" target="_blank">{{ paper.title }}</a></td>
           <td data-label="Year">{{ paper.year }}</td>
           <td data-label="Type">{{ paper.type }}</td>
           <td data-label="Citations"><a href="https://scholar.google.com/scholar_lookup?doi={{paper.doi}}" style="text-decoration:none;" target="_blank">{{ paper.citation }}</a></td>
