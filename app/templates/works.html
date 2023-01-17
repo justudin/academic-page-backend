@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Publications</title>
+    <title>Publications (Total: {{data.total_papers|safe}}, Citations: {{data.total_citations|safe}}, H-index: {{data.hindex|safe}})*</title>
     <style>
       table {
         border: 1px solid #ccc;
@@ -98,7 +98,7 @@
 </head>
 <body>
 <table>
-  <caption>Publications (Total: {{data.total_papers}}, Citations: {{data.total_citations}}, H-index: {{data.hindex}})*</caption>
+  <caption>Publications (Total: {{data.total_papers|safe}}, Citations: {{data.total_citations|safe}}, H-index: {{data.hindex|safe}})*</caption>
   <thead>
     <tr>
       <th scope="col" width="6%">#</th>
@@ -112,15 +112,15 @@
     {% for paper in data.data %}
       <tr>
           <td data-label="Number">{{ data.total_papers-loop.index+1 }}</td>
-          <td data-label="Title" class="textleft"><a href="https://doi.org/{{paper.doi}}" style="text-decoration:none;" target="_blank">{{ paper.title }}</a></td>
-          <td data-label="Year">{{ paper.year }}</td>
-          <td data-label="Type">{{ paper.type }}</td>
-          <td data-label="Citations"><a href="https://scholar.google.com/scholar_lookup?doi={{paper.doi}}" style="text-decoration:none;" target="_blank">{{ paper.citation }}</a></td>
+          <td data-label="Title" class="textleft"><a href="https://doi.org/{{paper.doi|safe}}" style="text-decoration:none;" target="_blank">{{ paper.title|safe }}</a></td>
+          <td data-label="Year">{{ paper.year|safe }}</td>
+          <td data-label="Type">{{ paper.type|safe }}</td>
+          <td data-label="Citations"><a href="https://scholar.google.com/scholar_lookup?title={{paper.title|safe}}&doi={{paper.doi|safe}}" style="text-decoration:none;" target="_blank">{{ paper.citation|safe }}</a></td>
       </tr>
       {% endfor %}
   </tbody>
 </table>
 <br/>
-<i>*This data are obtained from ORCID and Crossref (with valid Digital Object Identifier) independently, and may differ from Google Scholar. Generated as of {{ data.updated }}.</i>
+<i>*This data are obtained from ORCID and Crossref (with valid Digital Object Identifier) independently, and may differ from Google Scholar. Generated as of {{ data.updated|safe }}.</i>
 </body>
 </html>
