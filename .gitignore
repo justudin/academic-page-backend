@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 
 orcidcrossref_cache.sqlite
+.scopus-config.json
+data

@@ -6,6 +6,22 @@ import requests_cache
 from flask_cors import CORS
 from datetime import date
 
+# scopus API client
+from elsapy.elsclient import ElsClient
+from elsapy.elsprofile import ElsAuthor, ElsAffil
+from elsapy.elsdoc import FullDoc, AbsDoc
+from elsapy.elssearch import ElsSearch
+import json
+
+## Load configuration
+con_file = open(".scopus-config.json")
+config = json.load(con_file)
+con_file.close()
+
+## Initialize client
+client = ElsClient(config['apikey'])
+
+
 app = Flask(__name__)
 HEADERS = {'Accept': 'application/vnd.orcid+json', 'User-Agent': 'Academic Page/0.1.1 (https://github.com/justudin/academic-page; mailto:just.udin@yahoo.com) to retrieve citation counts'}
 requests_cache.install_cache('orcidcrossref_cache', backend='sqlite', expire_after=86400)
@@ -62,6 +78,36 @@ def orcid_data_part_reviews(orcid_id):
     else:
         message = jsonify(message='Please provide the ORCID ID')
         return make_response(message, 400)
+
+
+@app.route("/scopus/<scopus_id>/summary")
+def scopus_data_summary(scopus_id):
+    #print("orcid_data_part")
+    #update = request.args.get('update')
+    if scopus_id:
+        key = {'orcid': scopus_id}
+        data_mongodb = get_scopus_summary(scopus_id)
+        return jsonify(data_mongodb)
+    else:
+        message = jsonify(message='Please provide the SCOPUS ID')
+        return make_response(message, 400)
+
+def get_scopus_summary(scopus_id):
+    today = date.today()
+    todaydate = today.strftime("%d/%m/%Y")
+    scopus_data = ElsAuthor(uri = 'https://api.elsevier.com/content/author/author_id/'+str(scopus_id))
+    data_mongodb = {}
+    if scopus_data.read_metrics(client):
+        data_mongodb['scopus_id'] = scopus_id
+        data_mongodb['total_citations'] = scopus_data.data['coredata']['citation-count']
+        data_mongodb['total_papers'] = scopus_data.data['coredata']['document-count']
+        data_mongodb['hindex'] = scopus_data.data['h-index']
+        data_mongodb['updated'] = todaydate
+        
+    else:
+        print ("Read author failed.")
+    return data_mongodb
+
 
 @app.route("/")
 def welcome():
