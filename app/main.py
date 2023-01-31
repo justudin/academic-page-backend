@@ -99,6 +99,7 @@ def get_orcid_crossref(orcid_id):
                 created = cross_dt["message"]["created"]["timestamp"]
                 year = cross_dt["message"]["created"]["date-parts"][0][0]
                 data_all.append({'title':title, 'doi': doi, 'type':typepaper, 'year':year, 'created':created,'citation':citation})
+            data_all.sort(key=lambda x: x.get('year'), reverse=True)
         hIndexScore = hIndex(citations)
 
         data_mongodb = {'orcid':orcid_id, 'data':data_all, 'total_papers': len(citations), 'total_citations': sum(citations), 'hindex': hIndexScore, 'updated': todaydate}
