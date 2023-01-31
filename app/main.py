@@ -29,8 +29,8 @@ def version_api():
 
 @app.route("/orcid/<orcid_id>/works")
 def orcid_data_part(orcid_id):
-    print("orcid_data_part")
-    update = request.args.get('update')
+    #print("orcid_data_part")
+    #update = request.args.get('update')
     if orcid_id:
         key = {'orcid': orcid_id}
         data_mongodb = get_orcid_crossref(orcid_id)
@@ -41,12 +41,24 @@ def orcid_data_part(orcid_id):
 
 @app.route("/orcid/<orcid_id>/works/html")
 def orcid_data_part_html(orcid_id):
-    print("orcid_data_part")
-    update = request.args.get('update')
+    #print("orcid_data_part")
+    #update = request.args.get('update')
     if orcid_id:
         key = {'orcid': orcid_id}
         data_mongodb = get_orcid_crossref(orcid_id)
         return render_template('works.html', data=data_mongodb)
+    else:
+        message = jsonify(message='Please provide the ORCID ID')
+        return make_response(message, 400)
+
+@app.route("/orcid/<orcid_id>/reviews")
+def orcid_data_part_reviews(orcid_id):
+    #print("orcid_data_part")
+    #update = request.args.get('update')
+    if orcid_id:
+        key = {'orcid': orcid_id}
+        data_mongodb = get_orcid_reviews(orcid_id)
+        return jsonify(data_mongodb)
     else:
         message = jsonify(message='Please provide the ORCID ID')
         return make_response(message, 400)
@@ -92,6 +104,29 @@ def get_orcid_crossref(orcid_id):
         data_mongodb = {'orcid':orcid_id, 'data':data_all, 'total_papers': len(citations), 'total_citations': sum(citations), 'hindex': hIndexScore, 'updated': todaydate}
 
     return data_mongodb
+
+def get_orcid_reviews(orcid_id):
+    today = date.today()
+    todaydate = today.strftime("%d/%m/%Y")
+    headers_config = {'User-Agent': 'Academic Page/0.1.1 (https://github.com/justudin/academic-page; mailto:just.udin@yahoo.com) to retrieve citation counts'}
+    URL_ORCID = "https://orcid.org/"+str(orcid_id)+"/peer-reviews-minimized.json?sortAsc=true"
+    r = req.get(URL_ORCID, headers=HEADERS)
+    orcid_dt = r.json()
+    data_mongodb = {}
+    key = {'orcid': orcid_id}
+    total_outlet = len(orcid_dt)
+    total_review = 0
+    if total_outlet>0:
+        data_all = []
+        for dt in orcid_dt:
+            total_review += dt["duplicated"]
+            data_all.append({'outlet':dt["name"], 'issn': dt["groupIdValue"].rsplit(':', 1)[-1], 'reviews':dt["duplicated"]})
+        data_all.sort(key=lambda x: x.get('reviews'), reverse=True)
+        data_mongodb = {'orcid':orcid_id, 'data':data_all, 'total_reviews': total_review, 'total_outlets': total_outlet, 'updated': todaydate}
+    return data_mongodb
+
+def get_reviews(data):
+    return data.get('reviews')
 
 @app.errorhandler(404)
 def page_not_found(e):
