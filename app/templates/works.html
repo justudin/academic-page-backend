@@ -2,91 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Publications (Total: {{data.total_papers|safe}}, Citations: {{data.total_citations|safe}}, H-index: {{data.hindex|safe}})*</title>
+    <title>{{data.total_papers|safe}} Publications ( 
+  {% for key, value in data.category_publications.items() %}
+    {{ key | capitalize }} = {{ value|safe }},
+  {% endfor %}
+  Total citations = {{data.total_citations|safe}}, H-index = {{data.hindex|safe}} )*</title>
     <style>
-      table {
-        border: 1px solid #ccc;
-        border-collapse: collapse;
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        table-layout: fixed;
-      }
-
-      table caption {
-        font-size: 14pt;
-        margin: .5em 0 .75em;
-      }
-
-      table tr {
-        border: 1px solid #ddd;
-        padding: .35em;
-      }
-
-      .textleft {
-        text-align: left !important;
-      }
-
-      table th,
-      table td {
-        padding: .625em;
-        text-align: center;
-      }
-
-      table th {
-        font-size: 9pt;
-        letter-spacing: .1em;
-        text-transform: uppercase;
-      }
-
-      @media screen and (max-width: 600px) {
-        table {
-          border: 0;
-        }
-
-        table caption {
-          font-size: 14pt;
-        }
-        
-        table thead {
-          border: none;
-          clip: rect(0 0 0 0);
-          height: 1px;
-          margin: -1px;
-          overflow: hidden;
-          padding: 0;
-          position: absolute;
-          width: 1px;
-        }
-        
-        table tr {
-          border-bottom: 3px solid #ddd;
-          display: block;
-          margin-bottom: .625em;
-        }
-        
-        table td {
-          border-bottom: 1px solid #ddd;
-          display: block;
-          font-size: 9pt;
-          text-align: right;
-        }
-        
-        table td::before {
-          /*
-          * aria-label has no advantage, it won't be read inside a table
-          content: attr(aria-label);
-          */
-          content: attr(data-label);
-          float: left;
-          font-weight: bold;
-          text-transform: uppercase;
-        }
-        
-        table td:last-child {
-          border-bottom: 0;
-        }
-      }
 
       /* general styling */
       body {
@@ -94,27 +15,94 @@
         font-family: Arial, sans-serif; 
         font-size: 9pt;
       }
+
+      @import url(http://fonts.googleapis.com/css?family=Open+Sans);
+      body {
+        font-family: "Open Sans", sans-serif;
+      }
+      table {
+        border-left: none;
+        border-right: none;
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        margin:0;
+        padding:0;
+        width: 100%;
+      }
+      table caption {
+        font-size: 14pt;
+        margin: .5em 0 .75em;
+      }
+      table tr {
+        border: 1px solid #ddd;
+        border-bottom: 1px solid #ccc;
+        padding: 5px;
+      }
+      table th, table td {
+        padding: 10px;
+        text-align: center;
+        border-bottom: 1px solid #ccc;
+      }
+      table th {
+        border-bottom: 1px solid #ccc;
+        font-size: 14px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      @media screen and (max-width: 600px) {
+        table {
+          border: 0;
+        }
+        table thead {
+          display: none;
+        }
+        table tr {
+          border-bottom: 2px solid #ddd;
+          display: block;
+          margin-bottom: 10px;
+        }
+        table td {
+          border-bottom: 1px dotted #ccc;
+          display: block;
+          font-size: 13px;
+          text-align: right;
+        }
+        table td:last-child {
+          border-bottom: 0;
+        }
+        table td:before {
+          content: attr(data-label);
+          float: left;
+          font-weight: bold;
+          text-transform: uppercase;
+        }
+      }
     </style>
 </head>
 <body>
 <table>
-  <caption>Publications (Total: {{data.total_papers|safe}}, Citations: {{data.total_citations|safe}}, H-index: {{data.hindex|safe}})*</caption>
+  <caption>{{data.total_papers|safe}} Publications ( 
+  {% for key, value in data.category_publications.items() %}
+    {{ key | capitalize }} = {{ value|safe }},
+  {% endfor %}
+  Total citations = {{data.total_citations|safe}}, H-index = {{data.hindex|safe}} )*</caption>
+
   <thead>
     <tr>
       <th scope="col" width="6%">#</th>
       <th scope="col">Title</th>
       <th scope="col" width="6%">Year</th>
-      <th scope="col" width="7%">Type</th>
+      <!-- <th scope="col" width="7%">Type</th> -->
       <th scope="col" width="10%">Citations</th>
     </tr>
   </thead>
   <tbody>
     {% for paper in data.data %}
       <tr>
-          <td data-label="Number">{{ data.total_papers-loop.index+1 }}</td>
+          <td data-label="#">{{ data.total_papers-loop.index+1 }}</td>
           <td data-label="Title" class="textleft"><a href="https://doi.org/{{paper.doi|safe}}" style="text-decoration:none;" target="_blank">{{ paper.title|safe }}</a></td>
           <td data-label="Year">{{ paper.year|safe }}</td>
-          <td data-label="Type">{{ paper.type|safe }}</td>
+          <!-- <td data-label="Type">{{ paper.type|safe }}</td> -->
           <td data-label="Citations"><a href="https://scholar.google.com/scholar_lookup?title={{paper.title|safe}}&doi={{paper.doi|safe}}" style="text-decoration:none;" target="_blank">{{ paper.citation|safe }}</a></td>
       </tr>
       {% endfor %}

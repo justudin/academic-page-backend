@@ -5,22 +5,22 @@ from functools import reduce
 import requests_cache
 from flask_cors import CORS
 from datetime import date
+import json
 
 # scopus API client
+'''
 from elsapy.elsclient import ElsClient
 from elsapy.elsprofile import ElsAuthor, ElsAffil
 from elsapy.elsdoc import FullDoc, AbsDoc
 from elsapy.elssearch import ElsSearch
-import json
 
 ## Load configuration
 con_file = open(".scopus-config.json")
 config = json.load(con_file)
 con_file.close()
-
 ## Initialize client
 client = ElsClient(config['apikey'])
-
+'''
 
 app = Flask(__name__)
 HEADERS = {'Accept': 'application/vnd.orcid+json', 'User-Agent': 'Academic Page/0.1.1 (https://github.com/justudin/academic-page; mailto:just.udin@yahoo.com) to retrieve citation counts'}
@@ -39,7 +39,7 @@ def hello():
 def version_api():
     data = {
     'status':'ok',
-    'data':'as of 2022-07-01'
+    'data':'developed as of 2024-06-25'
     }
     return data
 
@@ -67,6 +67,31 @@ def orcid_data_part_html(orcid_id):
         message = jsonify(message='Please provide the ORCID ID')
         return make_response(message, 400)
 
+@app.route("/orcid/<orcid_id>/works/chart")
+def orcid_data_part_chart(orcid_id):
+    #print("orcid_data_part")
+    #update = request.args.get('update')
+    if orcid_id:
+        key = {'orcid': orcid_id}
+        data_mongodb = get_orcid_crossref(orcid_id)
+        # Extract keys as labels and values as data
+        labels = list(data_mongodb["yearly_publications"].keys())
+        #values = list(data_mongodb["yearly_publications"].values())
+
+        # Sorting by year (keys are strings, so converting to int for proper sorting)
+        labels_line = sorted(labels, key=int)
+        values_line = [data_mongodb["yearly_publications"][year] for year in labels_line]
+
+        labels_pie = list(data_mongodb["category_publications"].keys())
+        values_pie = list(data_mongodb["category_publications"].values())
+        print(labels_pie)
+
+        return render_template('chart.html', labels_line=labels_line, values_line=values_line, labels_pie=labels_pie, values_pie=values_pie)
+    else:
+        message = jsonify(message='Please provide the ORCID ID')
+        return make_response(message, 400)
+
+
 @app.route("/orcid/<orcid_id>/reviews")
 def orcid_data_part_reviews(orcid_id):
     #print("orcid_data_part")
@@ -79,7 +104,7 @@ def orcid_data_part_reviews(orcid_id):
         message = jsonify(message='Please provide the ORCID ID')
         return make_response(message, 400)
 
-
+'''
 @app.route("/scopus/<scopus_id>/summary")
 def scopus_data_summary(scopus_id):
     #print("orcid_data_part")
@@ -107,6 +132,7 @@ def get_scopus_summary(scopus_id):
     else:
         print ("Read author failed.")
     return data_mongodb
+'''
 
 
 @app.route("/")
@@ -148,7 +174,12 @@ def get_orcid_crossref(orcid_id):
             data_all.sort(key=lambda x: x.get('year'), reverse=True)
         hIndexScore = hIndex(citations)
 
-        data_mongodb = {'orcid':orcid_id, 'data':data_all, 'total_papers': len(citations), 'total_citations': sum(citations), 'hindex': hIndexScore, 'updated': todaydate}
+        category_publications = categorize_publications(data_all)
+        yearly_publications = yearly_count(data_all)
+        yc_publications = update_publication_count(data_all)
+        #print(category_publications,yearly_publications,yc_publications)
+
+        data_mongodb = {'orcid':orcid_id, 'data':data_all, 'total_papers': len(citations), 'total_citations': sum(citations), 'category_publications': category_publications, 'yearly_publications': yearly_publications, 'yearlycat_publications': yc_publications ,'hindex': hIndexScore, 'updated': todaydate}
 
     return data_mongodb
 
@@ -191,3 +222,41 @@ def get_data_mongodb(data):
     data["info"] = "data is not fresh"
     #data['_id'] = str(data['_id'])
     return data
+
+def categorize_publications(publications):
+    category_count = {}
+
+    for publication in publications:
+        if publication['type'] in category_count:
+            category_count[publication['type']] += 1
+        else:
+            category_count[publication['type']] = 1
+    
+    return category_count
+
+def yearly_count(publications):
+    yearly_publications = {}
+
+    for publication in publications:
+        if publication['year'] in yearly_publications:
+            yearly_publications[publication['year']] += 1
+        else:
+            yearly_publications[publication['year']] = 1
+    
+    return yearly_publications
+
+def update_publication_count(publications):
+    publications_count = {}
+    for publication in publications:
+        # Ensure the year key exists
+        if publication['year'] not in publications_count:
+            publications_count[publication['year']] = {}
+        
+        # Ensure the category key exists
+        if publication['type'] not in publications_count[publication['year']]:
+            publications_count[publication['year']][publication['type']] = 0
+
+        # Increment the count for the given category in the specified year
+        publications_count[publication['year']][publication['type']] += 1
+
+    return publications_count

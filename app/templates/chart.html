@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chart</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+      }
+      .chartCard {
+        display: flex;
+  		flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+      }
+
+      @media screen and (max-width: 768px) {
+		  .chartBox {
+		    width: 100%;
+		  }
+		}
+
+      .chartBox {
+      	flex: 1;
+  		width: 50%;
+        padding: 20px;
+        border-radius: 20px;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chartCard">
+      <div class="chartBox">
+        <canvas id="myChart"></canvas>
+      </div>
+      <div class="chartBox">
+        <canvas id="myPieChart"></canvas>
+      </div>
+    </div>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script>
+    // 1. Line setup 
+    const data = {
+      labels: {{ labels_line|safe }},
+      datasets: [{
+        label: 'Yearly publications',
+        data: {{ values_line|safe }},
+        borderWidth: 1
+      }]
+    };
+
+    // config 
+    const config = {
+      type: 'bar',
+      data,
+      options: {
+      	aspectRatio: 1,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    };
+    // render init block
+    const myChart = new Chart(
+      document.getElementById('myChart'),
+      config
+    );
+
+    // 2. pie setup 
+    const datapie = {
+      labels: {{labels_pie|safe}},
+      datasets: [{
+        label: 'Total publications',
+        data: {{values_pie|safe}},
+        borderWidth: 1
+      }]
+    };
+
+    // config 
+    const configpie = {
+      type: 'pie',
+      data: datapie,
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        },
+        plugins:{
+        	datalabels: {
+        		anchor: 'end',
+        		align: 'end',
+        		offset: -55,
+        		color: 'black',
+        		display: 'auto',
+        		font: {
+	              weight: 'bold',
+	              size: '14pt',
+	            },
+        		formatter: ((value, ctx)=>{
+        			const totalVal = ctx.dataset.data.reduce((accumVal, currVal) => {
+        				return accumVal+currVal
+        			}, 0);
+        			const percentage =  value/totalVal * 100
+        			return `${percentage.toFixed(1)}%`;
+        		})
+        	}
+        }
+      },
+      plugins: [ChartDataLabels],
+    };
+
+    // render init block
+    const myPieChart = new Chart(
+      document.getElementById('myPieChart'),
+      configpie
+    );
+
+
+    </script>
+
+  </body>
+</html>
