@@ -14,3 +14,11 @@ Check that Python v3 is already installed. Then you can:
 - To get the ORCID publications list: 
 `127.0.0.1:9000/orcid/0000-0002-5640-4413/works`
 - Change the ORCID with your own ID.
+
+
+# Debug mode in Window/CMD
+- Go to `academic-page-backend` directory
+- Activate your environtment
+- set FLASK_ENV=development
+- set FLASK_APP=app/main
+- flask run

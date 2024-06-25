@@ -4,53 +4,52 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Chart</title>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        font-family: sans-serif;
-      }
-      .chartCard {
-        display: flex;
-  		  flex-wrap: wrap;
-        align-items: center;
-        justify-content: center;
-      }
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 
-      @media screen and (max-width: 765px) {
-		  .chartBox {
-		    width: 100%;
-		  }
-		}
-
-      .chartBox {
-      	flex: 1;
-  		  width: 50%;
-        border-radius: 5px;
-        background: white;
-      }
-    </style>
+   
   </head>
   <body>
-    <div class="chartCard">
-      <div class="chartBox">
-        <canvas id="myChart"></canvas>
-      </div>
-      <div class="chartBox">
-        <canvas id="myPieChart"></canvas>
-      </div>
+    <div class="container-sm">
+    <div class="row">
+        <div class="col-md-6 col-sm-12 mb-4">
+            <canvas id="chart1"></canvas>
+        </div>
+        <div class="col-md-6 col-sm-12 mb-4">
+            <canvas id="chart2"></canvas>
+        </div>
     </div>
+</div>
+
+   
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script>
     // 1. Line setup 
     const data = {
       labels: {{ labels_line|safe }},
+      color: 'blue',
       datasets: [{
-        label: 'Yearly publications',
+        label: 'Past '+{{PastY}}+'-Years',
         data: {{ values_line|safe }},
-        borderWidth: 1
-      }]
+        borderWidth: 1,
+        borderColor: 'lightblue',
+        backgroundColor:'lightblue',
+        order: 1,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Accumulated',
+        data: {{ accumulated_values|safe }},
+        borderWidth: 1,
+        borderColor: 'green',
+        backgroundColor:'green',
+        borderDash: [5, 5],
+        type: 'line',
+        order: 0,
+        yAxisID: 'y1',
+      }
+      ]
     };
 
     // config 
@@ -58,17 +57,40 @@
       type: 'bar',
       data,
       options: {
-      	aspectRatio: 1,
+      	responsive: true,
+        aspectRatio: 1,
+        //maintainAspcetRatio: false,
         scales: {
           y: {
-            beginAtZero: true
+            type: 'linear',
+            display: true,
+            position: 'left',
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+
+            // grid line settings
+            grid: {
+              drawOnChartArea: false, // only want the grid lines for one axis to show up
+            },
+          },
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Yearly Publications'
           }
         }
       }
     };
     // render init block
     const myChart = new Chart(
-      document.getElementById('myChart'),
+      document.getElementById('chart1'),
       config
     );
 
@@ -87,12 +109,21 @@
       type: 'pie',
       data: datapie,
       options: {
+        //maintainAspcetRatio: false,
+        responsive: true,
         scales: {
           y: {
             beginAtZero: true
           }
         },
         plugins:{
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Publication types'
+          },
         	datalabels: {
         		anchor: 'end',
         		align: 'end',
@@ -118,12 +149,16 @@
 
     // render init block
     const myPieChart = new Chart(
-      document.getElementById('myPieChart'),
+      document.getElementById('chart2'),
       configpie
     );
 
 
     </script>
+    <!-- Bootstrap JS and dependencies (optional for responsive behaviors) -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
   </body>
 </html>

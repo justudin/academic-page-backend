@@ -6,6 +6,7 @@ import requests_cache
 from flask_cors import CORS
 from datetime import date
 import json
+from itertools import accumulate
 
 # scopus API client
 '''
@@ -82,11 +83,18 @@ def orcid_data_part_chart(orcid_id):
         labels_line = sorted(labels, key=int)
         values_line = [data_mongodb["yearly_publications"][year] for year in labels_line]
 
+        # Using accumulate to get the cumulative sum
+        accumulated_values = list(accumulate(values_line))
+
+        # initializing PastYear
+        PastY = 5
+
         labels_pie = list(data_mongodb["category_publications"].keys())
         values_pie = list(data_mongodb["category_publications"].values())
-        print(labels_pie)
+        #print(labels_pie)
+        #print(accumulated_values)
 
-        return render_template('chart.html', labels_line=labels_line, values_line=values_line, labels_pie=labels_pie, values_pie=values_pie)
+        return render_template('chart.html', accumulated_values=accumulated_values[-PastY:], PastY=PastY, labels_line=labels_line[-PastY:], values_line=values_line[-PastY:], labels_pie=labels_pie, values_pie=values_pie)
     else:
         message = jsonify(message='Please provide the ORCID ID')
         return make_response(message, 400)
