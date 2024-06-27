@@ -200,7 +200,7 @@ def get_orcid_reviews(orcid_id):
     todaydate = today.strftime("%d/%m/%Y")
     headers_config = {'User-Agent': 'Academic Page/0.1.1 (https://github.com/justudin/academic-page; mailto:just.udin@yahoo.com) to retrieve citation counts'}
     URL_ORCID = "https://orcid.org/"+str(orcid_id)+"/peer-reviews-minimized.json?sortAsc=true"
-    r = req.get(URL_ORCID, headers=HEADERS)
+    r = requests.get(URL_ORCID, headers=HEADERS)
     orcid_dt = r.json()
     data_mongodb = {}
     key = {'orcid': orcid_id}
