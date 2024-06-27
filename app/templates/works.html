@@ -81,11 +81,12 @@
 </head>
 <body>
 <table>
-  <caption>{{data.total_papers|safe}} Publications ( 
+  <caption>{{data.total_papers|safe}} Publications*
+    <!--( 
   {% for key, value in data.category_publications.items() %}
     {{ key | capitalize }} = {{ value|safe }},
   {% endfor %}
-  Total citations = {{data.total_citations|safe}}, H-index = {{data.hindex|safe}} )*</caption>
+  Total citations = {{data.total_citations|safe}}, H-index = {{data.hindex|safe}} ) !--></caption>
 
   <thead>
     <tr>

@@ -19,6 +19,11 @@
             <canvas id="chart2"></canvas>
         </div>
     </div>
+    <div class="row">
+      <div class="col-sm-12 mb-4">
+            <canvas id="chart3"></canvas>
+        </div>
+    </div>
 </div>
 
    
@@ -41,9 +46,9 @@
       {
         label: 'Accumulated',
         data: {{ accumulated_values|safe }},
-        borderWidth: 1,
-        borderColor: 'green',
-        backgroundColor:'green',
+        borderWidth: 3,
+        borderColor: 'red',
+        backgroundColor:'red',
         borderDash: [5, 5],
         type: 'line',
         order: 0,
@@ -83,7 +88,10 @@
           },
           title: {
             display: true,
-            text: 'Yearly Publications'
+            text: 'Publications',
+            font: {
+              size: 20
+            }
           }
         }
       }
@@ -111,18 +119,16 @@
       options: {
         //maintainAspcetRatio: false,
         responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        },
         plugins:{
           legend: {
             position: 'top',
           },
           title: {
             display: true,
-            text: 'Publication types'
+            text: 'Publication types',
+            font: {
+              size: 20
+            }
           },
         	datalabels: {
         		anchor: 'end',
@@ -151,6 +157,77 @@
     const myPieChart = new Chart(
       document.getElementById('chart2'),
       configpie
+    );
+
+    //3. Citation 
+    const dataCitation = {
+      labels: {{ citations_labels|safe }},
+      color: 'blue',
+      datasets: [{
+        label: 'Citations',
+        data: {{ citations_values_line|safe }},
+        borderColor: 'lightgreen',
+        backgroundColor:'lightgreen',
+        order: 1,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Accumulated',
+        data: {{ citations_accumulated_values|safe }},
+        borderWidth: 3,
+        borderColor: 'red',
+        backgroundColor:'red',
+        borderDash: [5, 5],
+        type: 'line',
+        order: 0,
+        yAxisID: 'y1',
+      }
+      ]
+    };
+
+    // config 
+    const configCitation = {
+      type: 'bar',
+      data: dataCitation,
+      options: {
+        responsive: true,
+        aspectRatio: 1,
+        //maintainAspcetRatio: false,
+        scales: {
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+
+            // grid line settings
+            grid: {
+              drawOnChartArea: false, // only want the grid lines for one axis to show up
+            },
+          },
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Citations (Cited-by Crossref)',
+            font: {
+              size: 20
+            }
+          }
+        }
+      }
+    };
+    // render init block
+    const myChartCitation = new Chart(
+      document.getElementById('chart3'),
+      configCitation
     );
 
 

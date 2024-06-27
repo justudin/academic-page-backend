@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, make_response, render_template
-import requests as req
+import requests
 import datetime
 from functools import reduce
 import requests_cache
@@ -7,25 +7,25 @@ from flask_cors import CORS
 from datetime import date
 import json
 from itertools import accumulate
+import xmltodict
+import os
+import hashlib
+from requests_cache import CachedSession, SQLiteCache
 
-# scopus API client
 '''
-from elsapy.elsclient import ElsClient
-from elsapy.elsprofile import ElsAuthor, ElsAffil
-from elsapy.elsdoc import FullDoc, AbsDoc
-from elsapy.elssearch import ElsSearch
+import logging
+logging.basicConfig(level='DEBUG')
+'''
 
-## Load configuration
-con_file = open(".scopus-config.json")
-config = json.load(con_file)
-con_file.close()
-## Initialize client
-client = ElsClient(config['apikey'])
-'''
+USR_CITED = os.getenv('USR_CITED')
+PWD_CITED= os.getenv('PWD_CITED')
+
 
 app = Flask(__name__)
 HEADERS = {'Accept': 'application/vnd.orcid+json', 'User-Agent': 'Academic Page/0.1.1 (https://github.com/justudin/academic-page; mailto:just.udin@yahoo.com) to retrieve citation counts'}
-requests_cache.install_cache('orcidcrossref_cache', backend='sqlite', expire_after=86400)
+backend = SQLiteCache('orcidcrossref_cache')
+requests_cache.install_cache(backend=backend, expire_after=86400)
+
 CORS(app)
 
 @app.route("/hello")
@@ -94,7 +94,17 @@ def orcid_data_part_chart(orcid_id):
         #print(labels_pie)
         #print(accumulated_values)
 
-        return render_template('chart.html', accumulated_values=accumulated_values[-PastY:], PastY=PastY, labels_line=labels_line[-PastY:], values_line=values_line[-PastY:], labels_pie=labels_pie, values_pie=values_pie)
+        #citationsper year
+        citations_labels = list(data_mongodb["yc_citations"].keys())
+        citations_labels_line = sorted(citations_labels, key=int)
+        citations_values_line = [data_mongodb["yc_citations"][year] for year in citations_labels_line]
+        citations_accumulated_values = list(accumulate(citations_values_line))
+        #print(citations_labels, citations_values_line, citations_accumulated_values)
+
+        # Using accumulate to get the cumulative sum
+        accumulated_values = list(accumulate(values_line))
+
+        return render_template('chart.html', citations_labels=citations_labels_line, citations_values_line=citations_values_line, citations_accumulated_values=citations_accumulated_values, accumulated_values=accumulated_values[-PastY:], PastY=PastY, labels_line=labels_line[-PastY:], values_line=values_line[-PastY:], labels_pie=labels_pie, values_pie=values_pie)
     else:
         message = jsonify(message='Please provide the ORCID ID')
         return make_response(message, 400)
@@ -112,36 +122,6 @@ def orcid_data_part_reviews(orcid_id):
         message = jsonify(message='Please provide the ORCID ID')
         return make_response(message, 400)
 
-'''
-@app.route("/scopus/<scopus_id>/summary")
-def scopus_data_summary(scopus_id):
-    #print("orcid_data_part")
-    #update = request.args.get('update')
-    if scopus_id:
-        key = {'orcid': scopus_id}
-        data_mongodb = get_scopus_summary(scopus_id)
-        return jsonify(data_mongodb)
-    else:
-        message = jsonify(message='Please provide the SCOPUS ID')
-        return make_response(message, 400)
-
-def get_scopus_summary(scopus_id):
-    today = date.today()
-    todaydate = today.strftime("%d/%m/%Y")
-    scopus_data = ElsAuthor(uri = 'https://api.elsevier.com/content/author/author_id/'+str(scopus_id))
-    data_mongodb = {}
-    if scopus_data.read_metrics(client):
-        data_mongodb['scopus_id'] = scopus_id
-        data_mongodb['total_citations'] = scopus_data.data['coredata']['citation-count']
-        data_mongodb['total_papers'] = scopus_data.data['coredata']['document-count']
-        data_mongodb['hindex'] = scopus_data.data['h-index']
-        data_mongodb['updated'] = todaydate
-        
-    else:
-        print ("Read author failed.")
-    return data_mongodb
-'''
-
 
 @app.route("/")
 def welcome():
@@ -152,7 +132,7 @@ def get_orcid_crossref(orcid_id):
     todaydate = today.strftime("%d/%m/%Y")
     headers_config = {'User-Agent': 'Academic Page/0.1.1 (https://github.com/justudin/academic-page; mailto:just.udin@yahoo.com) to retrieve citation counts'}
     URL_ORCID = "https://pub.orcid.org/v3.0/"+str(orcid_id)+"/works"
-    r = req.get(URL_ORCID, headers=HEADERS)
+    r = requests.get(URL_ORCID, headers=HEADERS)
     orcid_dt = r.json()
     data_mongodb = {}
     key = {'orcid': orcid_id}
@@ -170,7 +150,7 @@ def get_orcid_crossref(orcid_id):
         if len(data_dois)>0:
             for doi in data_dois:
                 URL_CROSSREF = "https://api.crossref.org/works/"+str(doi)
-                cross = req.get(URL_CROSSREF, headers=headers_config)
+                cross = requests.get(URL_CROSSREF, headers=headers_config)
                 cross_dt = cross.json()
                 citation = cross_dt["message"]["is-referenced-by-count"]
                 citations.append(citation)
@@ -178,16 +158,40 @@ def get_orcid_crossref(orcid_id):
                 typepaper = cross_dt["message"]["type"]
                 created = cross_dt["message"]["created"]["timestamp"]
                 year = cross_dt["message"]["created"]["date-parts"][0][0]
-                data_all.append({'title':title, 'doi': doi, 'type':typepaper, 'year':year, 'created':created,'citation':citation})
+                # call cited-by
+                URL_API_CITED_BY = "https://doi.crossref.org/servlet/getForwardLinks?usr={}&pwd={}&doi={}".format(USR_CITED,PWD_CITED,doi)
+                # Generate a cache key based on URL and payload
+                cache_key = hashlib.sha256(json.dumps({'url': URL_API_CITED_BY}).encode('utf-8')).hexdigest()
+
+                # Check if the response is in the cache
+                cached_response = backend.get_response(cache_key)
+                if cached_response is None:
+                    # If not cached, make the actual request
+                    response = requests.post(URL_API_CITED_BY)
+                    # Store the response in the cache manually
+                    backend.save_response(response, cache_key)
+                else:
+                    # Use cached response
+                    response = cached_response
+
+                #rq_cited = requests.post(URL_API_CITED_BY, headers=headers_config)
+                my_dict = xmltodict.parse(response.content)
+                yearly_citations_output = get_yearly_citations(my_dict)
+                #print(doi, yearly_citations_output)
+                data_all.append({'title':title, 'doi': doi, 'type':typepaper, 'year':year, 'created':created,'citation':citation, 'yearly_citations': yearly_citations_output})
             data_all.sort(key=lambda x: x.get('year'), reverse=True)
         hIndexScore = hIndex(citations)
 
         category_publications = categorize_publications(data_all)
         yearly_publications = yearly_count(data_all)
         yc_publications = update_publication_count(data_all)
+        yc_citations = citations_yearly_summary(data_all)
+        total_citations = sum(yc_citations.values())
+        #print(yc_citations, total_citations)
+
         #print(category_publications,yearly_publications,yc_publications)
 
-        data_mongodb = {'orcid':orcid_id, 'data':data_all, 'total_papers': len(citations), 'total_citations': sum(citations), 'category_publications': category_publications, 'yearly_publications': yearly_publications, 'yearlycat_publications': yc_publications ,'hindex': hIndexScore, 'updated': todaydate}
+        data_mongodb = {'orcid':orcid_id, 'data':data_all, 'total_papers': len(citations), 'total_citations': total_citations, 'category_publications': category_publications, 'yearly_publications': yearly_publications, 'yc_citations':yc_citations, 'yearlycat_publications': yc_publications ,'hindex': hIndexScore, 'updated': todaydate}
 
     return data_mongodb
 
@@ -268,3 +272,61 @@ def update_publication_count(publications):
         publications_count[publication['year']][publication['type']] += 1
 
     return publications_count
+
+def citations_yearly_summary(publications):
+    citations_yearly_count = {}
+    for publication in publications:
+        yearly_citations = publication.get('yearly_citations', {})
+        if isinstance(yearly_citations, dict):
+            for year, count in yearly_citations.items():
+                if year in citations_yearly_count:
+                    citations_yearly_count[year] += count
+                else:
+                    citations_yearly_count[year] = count
+    return citations_yearly_count
+
+# Function to get dictionary values using keys with a specific suffix
+def get_values_with_suffix(data, suffix='_cite'):
+    #return {"cited": v for k, v in d.items() if k.endswith(suffix)}
+    def extract_values(d):
+            return {"cited": v for k, v in d.items() if k.endswith(suffix)}
+        
+    if isinstance(data, dict):
+        return extract_values(data)
+    elif isinstance(data, list):
+        return [extract_values(d) for d in data if isinstance(d, dict)]
+    else:
+        raise TypeError("Input must be a dictionary or a list of dictionaries")
+
+def get_yearly_citations(my_dict):
+    yearly_citations = {}
+    checkKey = safe_get_try_except(my_dict['crossref_result']['query_result']['body'], 'forward_link')
+    if checkKey is not None:
+        forward_link = my_dict['crossref_result']['query_result']['body']['forward_link']
+        if isinstance(forward_link, dict):
+            values_with_suffix = get_values_with_suffix(forward_link)
+            year = values_with_suffix['cited']['year']
+            if year in yearly_citations:
+                yearly_citations[year] += 1
+            else:
+                yearly_citations[year] = 1
+        elif isinstance(forward_link, list):
+            for x in list(forward_link):
+                values_with_suffix = get_values_with_suffix(x)
+                year = values_with_suffix['cited']['year']
+                if year in yearly_citations:
+                    yearly_citations[year] += 1
+                else:
+                    yearly_citations[year] = 1
+            
+        return yearly_citations
+    else:
+        pass
+
+def safe_get_try_except(d, key, default=None):
+    try:
+        return d[key]
+    except TypeError:
+        return default
+    except KeyError:
+        return default
