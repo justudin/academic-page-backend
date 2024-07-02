@@ -92,9 +92,9 @@
     {% for paper in data.data %}
       <tr>
           <td data-label="#">{{ data.total_papers-loop.index+1 }}</td>
-          <td data-label="Title" class="textleft"><a href="{{paper.gs_link|safe}}" style="text-decoration:none;" target="_blank">{{ paper.title|safe }}</a></td>
+          <td data-label="Title" class="textleft"><a href="{{paper.gs_view|safe}}" style="text-decoration:none;" target="_blank">{{ paper.title|safe }}</a></td>
           <td data-label="Year">{{ paper.year|safe }}</td>
-          <td data-label="Citations"><a href="{{paper.gs_view|safe}}" style="text-decoration:none;" target="_blank">{{ paper.citation|safe }}</a></td>
+          <td data-label="Citations"><a href="{{paper.gs_link|safe}}" style="text-decoration:none;" target="_blank">{{ paper.citation|safe }}</a></td>
       </tr>
       {% endfor %}
   </tbody>
