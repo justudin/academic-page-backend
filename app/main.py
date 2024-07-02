@@ -194,6 +194,8 @@ def get_orcid_googlescholar(orcid_id, db_request=False):
             gs_view = "https://scholar.google.co.kr/citations?view_op=view_citation&hl=en&citation_for_view="+pub['author_pub_id']
             if pub['num_citations'] > 0:
                 gs_link = pub['citedby_url']
+            else:
+                gs_link = gs_view
             citations.append(pub['num_citations'])
             data_all.append({'title': pub['bib']['title'], 'year': int(pub['bib']['pub_year']), 'citation': pub['num_citations'], 'gs_view': gs_view, 'gs_link': gs_link })
         data_all.sort(key=lambda x: x.get('year'), reverse=True)
