@@ -304,7 +304,7 @@ def get_orcid_reviews(orcid_id, db_request=True):
             data_all = [{"outlet": outlet, "issn": info["issn"], "reviews": info["reviews"]} for outlet, info in outlet_reviews.items()]
             data_all.sort(key=lambda x: x.get('reviews'), reverse=True)
             db.orcid_reviews.find_one_and_update({'orcid':orcid_id},
-                               {"$set": {'data':data_all, 'total_reviews': total_review, 'total_outlets': total_outlet, 'updated': todaydate}},
+                               {"$set": {'data':data_all, 'total_reviews': total_review, 'total_outlets': len(data_all), 'updated': todaydate}},
                                upsert=True)
             data_mongodb = db.orcid_reviews.find_one({'orcid': orcid_id}, {'_id': False})
         return data_mongodb
