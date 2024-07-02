@@ -21,6 +21,7 @@ Check that Python v3 is already installed. Then you can:
 - Activate your environtment
 - set FLASK_ENV=development
 - set FLASK_APP=app/main
+- set MONGODB_URI=mongodb://localhost:27017
 - set USR_CITED=usr (Change with your own)
 - set PWD_CITED=pwd (Change with your own)
 - flask run

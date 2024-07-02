@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{data.total_papers|safe}} Publications ( Total citations = {{data.total_citations|safe}}, H-index = {{data.hindex|safe}} )*</title>
+    <style>
+
+      /* general styling */
+      body {
+        line-height: 1.25;
+        font-family: Arial, sans-serif; 
+        font-size: 9pt;
+      }
+
+      @import url(http://fonts.googleapis.com/css?family=Open+Sans);
+      body {
+        font-family: "Open Sans", sans-serif;
+      }
+      table {
+        border-left: none;
+        border-right: none;
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        margin:0;
+        padding:0;
+        width: 100%;
+      }
+      table caption {
+        font-size: 14pt;
+        margin: .5em 0 .75em;
+      }
+      table tr {
+        border: 1px solid #ddd;
+        border-bottom: 1px solid #ccc;
+        padding: 5px;
+      }
+      table th, table td {
+        padding: 10px;
+        text-align: center;
+        border-bottom: 1px solid #ccc;
+      }
+      table th {
+        border-bottom: 1px solid #ccc;
+        font-size: 14px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      @media screen and (max-width: 600px) {
+        table {
+          border: 0;
+        }
+        table thead {
+          display: none;
+        }
+        table tr {
+          border-bottom: 2px solid #ddd;
+          display: block;
+          margin-bottom: 10px;
+        }
+        table td {
+          border-bottom: 1px dotted #ccc;
+          display: block;
+          font-size: 13px;
+          text-align: right;
+        }
+        table td:last-child {
+          border-bottom: 0;
+        }
+        table td:before {
+          content: attr(data-label);
+          float: left;
+          font-weight: bold;
+          text-transform: uppercase;
+        }
+      }
+    </style>
+</head>
+<body>
+<table>
+  <caption>{{data.total_papers|safe}} Publications*</caption>
+
+  <thead>
+    <tr>
+      <th scope="col" width="6%">#</th>
+      <th scope="col">Title</th>
+      <th scope="col" width="6%">Year</th>
+      <!-- <th scope="col" width="7%">Type</th> -->
+      <th scope="col" width="10%">Citations</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for paper in data.data %}
+      <tr>
+          <td data-label="#">{{ data.total_papers-loop.index+1 }}</td>
+          <td data-label="Title" class="textleft"><a href="{{paper.gs_link|safe}}" style="text-decoration:none;" target="_blank">{{ paper.title|safe }}</a></td>
+          <td data-label="Year">{{ paper.year|safe }}</td>
+          <td data-label="Citations"><a href="{{paper.gs_view|safe}}" style="text-decoration:none;" target="_blank">{{ paper.citation|safe }}</a></td>
+      </tr>
+      {% endfor %}
+  </tbody>
+</table>
+<br/>
+<i>*This data was obtained from <a href="{{data.gs_id|safe}}" style="text-decoration:none;" target="_blank">Google Scholar</a>. Generated as of {{ data.updated|safe }}.</i>
+</body>
+</html>

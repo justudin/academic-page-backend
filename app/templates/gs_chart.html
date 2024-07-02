@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chart</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+   
+  </head>
+  <body>
+    <div class="container-sm">
+    <div class="row">
+        <div class="col-md-12 col-sm-12 mb-4">
+            <canvas id="chart3" width="600" height="400"></canvas>
+        </div>
+        <br/>
+        <i style="font-size: 10pt; color:gray">*This data was obtained from <a href="{{gs_id|safe}}" style="text-decoration:none;" target="_blank">Google Scholar</a>. Generated as of {{ updated|safe }}.</i>
+        </body>
+    </div>
+</div>
+
+   
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script>
+    //3. Citation 
+    const dataCitation = {
+      labels: {{ citations_labels|safe }},
+      color: 'blue',
+      datasets: [{
+        label: 'Citations',
+        data: {{ citations_values_line|safe }},
+        borderColor: 'lightgreen',
+        backgroundColor:'lightgreen',
+        order: 1,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Accumulated',
+        data: {{ citations_accumulated_values|safe }},
+        borderWidth: 3,
+        borderColor: 'red',
+        backgroundColor:'red',
+        borderDash: [5, 5],
+        type: 'line',
+        order: 0,
+        yAxisID: 'y1',
+      }
+      ]
+    };
+
+    // config 
+    const configCitation = {
+      type: 'bar',
+      data: dataCitation,
+      options: {
+        responsive: true,
+        //aspectRatio: 1,
+        maintainAspcetRatio: false,
+        scales: {
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+
+            // grid line settings
+            grid: {
+              drawOnChartArea: false, // only want the grid lines for one axis to show up
+            },
+          },
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Citations',
+            font: {
+              size: 16
+            }
+          }
+        }
+      }
+    };
+    // render init block
+    const myChartCitation = new Chart(
+      document.getElementById('chart3'),
+      configCitation
+    );
+
+
+    </script>
+    <!-- Bootstrap JS and dependencies (optional for responsive behaviors) -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  </body>
+</html>
