@@ -7,6 +7,7 @@ from functools import reduce
 import requests_cache
 from flask_cors import CORS
 from datetime import date
+from time import time
 import json
 from itertools import accumulate
 import xmltodict
@@ -16,11 +17,9 @@ from requests_cache import CachedSession, SQLiteCache
 from collections import defaultdict
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-from scholarly import scholarly
-from scholarly import ProxyGenerator
-# Activates proxy because Google Scholar otherwise might block the IP address
+from scholarly import scholarly, ProxyGenerator
 pg = ProxyGenerator()
-scholarly.use_proxy(pg, pg)
+scholarly.use_proxy(pg)
 
 '''
 import logging
@@ -169,9 +168,80 @@ def orcid_googlescholar_chart(orcid_id):
         message = jsonify(message='Please provide the ORCID ID')
         return make_response(message, 400)
 
+@app.route("/citations")
+def googlescholar_citations():
+    user = request.args.get('user')
+    op = request.args.get('op')
+    db_request = request.args.get('update')
+    db_request = True if db_request is None else False
+    if user:
+        data_mongodb = get_googlescholar_data(user, db_request)
+        if op=='json':
+            return jsonify(data_mongodb)
+        elif op=='chart':
+            # Extract keys as labels and values as data
+            labels = list(data_mongodb["yearly_publications"].keys())
+            labels_line = sorted(labels, key=int)
+            values_line = [data_mongodb["yearly_publications"][year] for year in labels_line]
+            accumulated_values = list(accumulate(values_line))
+            PastY = 3
+            citations_labels = list(data_mongodb["yc_citations"].keys())
+            citations_labels_line = sorted(citations_labels, key=int)
+            citations_values_line = [data_mongodb["yc_citations"][year] for year in citations_labels_line]
+            citations_accumulated_values = list(accumulate(citations_values_line))
+            accumulated_values = list(accumulate(values_line))
+            return render_template('gs_chart.html', gs_id=data_mongodb['gs_id'], updated=data_mongodb['updated'], citations_labels=citations_labels_line, citations_values_line=citations_values_line, citations_accumulated_values=citations_accumulated_values, accumulated_values=accumulated_values[-PastY:], PastY=PastY, labels_line=labels_line[-PastY:], values_line=values_line[-PastY:])
+        elif op=='html':
+            return render_template('gs_works.html', data=data_mongodb)
+        else:
+            return jsonify(data_mongodb)
+    else:
+        message = jsonify(message='Please provide the GoogleScholar user id')
+        return make_response(message, 400)
+
 @app.route("/")
 def welcome():
     return "Welcome abroad!"
+
+def get_googlescholar_data(user, db_request=False):
+    # check if data already exist
+    data = db.orcid_googlescholar.find_one({'user': user}, {'_id': False})
+    if(data and db_request):
+        return data
+    else:
+        today = datetime.today()
+        todaydate = today.strftime("%d/%m/%Y %H:%M:%S")
+        # record start time
+        time_start = time()
+        search_user = scholarly.search_author_id(user)
+        fullname_affiliation = search_user['name']+', '+search_user['affiliation'].split(",")[-1].strip()
+        search_query = scholarly.search_author(fullname_affiliation)
+        author = next(search_query)
+        data = scholarly.fill(author, sections=[], sortby='year')
+        data_all = []
+        citations = []
+        for pub in data["publications"]:
+            gs_view = "https://scholar.google.co.kr/citations?view_op=view_citation&hl=en&citation_for_view="+pub['author_pub_id']
+            if pub['num_citations'] > 0:
+                gs_link = pub['citedby_url']
+            else:
+                gs_link = gs_view
+            citations.append(pub['num_citations'])
+            data_all.append({'title': pub['bib']['title'], 'year': int(pub['bib']['pub_year']), 'citation': pub['num_citations'], 'gs_view': gs_view, 'gs_link': gs_link })
+        #data_all.sort(key=lambda x: x.get('year'), reverse=True)
+        yearly_publications = yearly_count(data_all)
+        yc_citations = {str(key): value for key, value in data['cites_per_year'].items()}
+        basic_info = {k: search_user[k] for k in search_user.keys() - {'container_type', 'filled', 'source', 'citedby', 'scholar_id'}}
+        # record end time
+        time_end = time()
+        # calculate the duration
+        time_duration = round(time_end - time_start,2)
+        info = f'Took {time_duration} seconds'
+        db.orcid_googlescholar.find_one_and_update({'user': user},
+                               {"$set": {'basic_info': basic_info,'data':data_all, 'total_papers': len(citations), 'total_citations': sum(citations), 'yearly_publications': yearly_publications, 'yc_citations': yc_citations, 'hindex':data['hindex'], 'i10index':data['i10index'], 'gs_id': 'https://scholar.google.co.kr/citations?user='+data['scholar_id'], 'updated': todaydate, 'info':info}},
+                               upsert=True)
+        data = db.orcid_googlescholar.find_one({'user': user}, {'_id': False})
+    return data
 
 def get_orcid_googlescholar(orcid_id, db_request=False):
     # check if data already exist
@@ -187,7 +257,7 @@ def get_orcid_googlescholar(orcid_id, db_request=False):
         fullname = orcid_dt['displayName']
         search_query = scholarly.search_author(fullname)
         author = next(search_query)
-        data = scholarly.fill(author, sections=[])
+        data = scholarly.fill(author, sections=[], sortby='year')
         data_all = []
         citations = []
         for pub in data["publications"]:
@@ -198,7 +268,7 @@ def get_orcid_googlescholar(orcid_id, db_request=False):
                 gs_link = gs_view
             citations.append(pub['num_citations'])
             data_all.append({'title': pub['bib']['title'], 'year': int(pub['bib']['pub_year']), 'citation': pub['num_citations'], 'gs_view': gs_view, 'gs_link': gs_link })
-        data_all.sort(key=lambda x: x.get('year'), reverse=True)
+        #data_all.sort(key=lambda x: x.get('year'), reverse=True)
         yearly_publications = yearly_count(data_all)
         yc_citations = {str(key): value for key, value in data['cites_per_year'].items()}
         db.orcid_googlescholar.find_one_and_update({'orcid':orcid_id},
