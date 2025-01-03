@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify, make_response, render_template
+from flask import Flask, request, jsonify, make_response, render_template, redirect
+import string, random
 from werkzeug.exceptions import HTTPException
 import requests
 import datetime
@@ -43,6 +44,58 @@ backend = SQLiteCache('orcidcrossref_cache')
 requests_cache.install_cache(backend=backend, expire_after=86400)
 
 CORS(app)
+
+# Generate a random short link
+def generate_short_link():
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choice(characters) for _ in range(6))
+
+@app.route('/shorten', methods=['POST'])
+def shorten_url():
+    """
+    Endpoint to shorten a URL.
+    Expects JSON input: {"url": "http://example.com", "short_link":"custom"}
+    """
+    data = request.json
+    original_url = data.get("url")
+    short_link = data.get("short_link")
+    
+    if not original_url:
+        return jsonify({"error": "URL is required"}), 400
+
+    # Check if the URL is already in the database
+    existing_entry = db.urls.find_one({"original_url": original_url})
+    if existing_entry:
+        short_link = existing_entry["short_link"]
+    else:
+        if not short_link:
+            # Generate a new short link
+            short_link = generate_short_link()
+            while db.urls.find_one({"short_link": short_link}):  # Ensure uniqueness
+                short_link = generate_short_link()
+
+        # Save to the database
+        db.urls.insert_one({
+            "original_url": original_url,
+            "short_link": short_link
+        })
+    
+    return jsonify({
+        "short_link": BASE_URL + short_link,
+        "original_url": original_url
+    })
+
+@app.route('/<short_link>')
+def redirect_url(short_link):
+    """
+    Redirect to the original URL based on the short link.
+    """
+    # Lookup the short link in the database
+    entry = db.urls.find_one({"short_link": short_link})
+    if entry:
+        return redirect(entry["original_url"])
+    return jsonify({"error": "Not found"}), 404
+
 
 @app.route("/hello")
 def hello():
